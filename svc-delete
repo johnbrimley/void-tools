@@ -39,7 +39,7 @@ fi
 # Disable first if currently enabled
 if [[ -L "$run_link" ]]; then
     echo "Disabling service before deletion..."
-    "${SCRIPT_DIR}/svc-remove" "$service"
+    "${SCRIPT_DIR}/svc-remove" --quiet "$service"
     echo ""
 fi
 

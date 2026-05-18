@@ -35,3 +35,10 @@ fi
 echo "Removing: $*"
 echo ""
 xbps-remove -R "$@"
+status=$?
+
+if [[ $status -ne 0 ]]; then
+    echo "" >&2
+    echo "ERROR: xbps-remove failed (exit code ${status})." >&2
+    exit $status
+fi

@@ -1,16 +1,26 @@
 #!/bin/bash
 # Disable a runit service by removing its symlink from /var/service/.
-# Usage: svc-remove <service-name>
+# Usage: svc-remove [--quiet] <service-name>
 
 RUN_DIR="/var/service"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ -z "$1" ]]; then
-    echo "Usage: svc-remove <service-name>" >&2
+quiet=false
+service=""
+
+for arg in "$@"; do
+    case "$arg" in
+        --quiet|-q) quiet=true ;;
+        -*) echo "ERROR: Unknown option: ${arg}" >&2; echo "Usage: svc-remove [--quiet] <service-name>" >&2; exit 1 ;;
+        *) service="$arg" ;;
+    esac
+done
+
+if [[ -z "$service" ]]; then
+    echo "Usage: svc-remove [--quiet] <service-name>" >&2
     exit 1
 fi
 
-service="$1"
 run_path="${RUN_DIR}/${service}"
 
 if [[ ! -d "$RUN_DIR" ]]; then
@@ -48,7 +58,7 @@ echo "Stopping service '${service}'..."
 sv down "$service" 2>/dev/null
 
 echo "Disabling service '${service}'..."
-rm "${run_path}"
+rm -f "${run_path}"
 
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Failed to remove ${run_path}" >&2
@@ -56,6 +66,9 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "Service '${service}' disabled."
-echo ""
-echo "Current enabled services:"
-"${SCRIPT_DIR}/svc-list"
+
+if ! $quiet; then
+    echo ""
+    echo "Current enabled services:"
+    "${SCRIPT_DIR}/svc-list"
+fi

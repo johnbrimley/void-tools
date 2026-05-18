@@ -14,7 +14,7 @@ if $show_all; then
     echo "Available services (${SV_DIR}):"
     echo ""
     if [[ ! -d "$SV_DIR" ]]; then
-        echo "  ERROR: ${SV_DIR} does not exist." >&2
+        echo "ERROR: ${SV_DIR} does not exist." >&2
         exit 1
     fi
     services=( "$SV_DIR"/*/  )
@@ -35,7 +35,7 @@ else
     echo "Enabled services (${RUN_DIR}):"
     echo ""
     if [[ ! -d "$RUN_DIR" ]]; then
-        echo "  ERROR: ${RUN_DIR} does not exist." >&2
+        echo "ERROR: ${RUN_DIR} does not exist." >&2
         exit 1
     fi
     services=( "$RUN_DIR"/*/  )

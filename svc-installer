@@ -1,12 +1,20 @@
 #!/bin/bash
-# Bootstrap void-tools svc-* scripts from GitHub.
+# Bootstrap void-tools scripts from GitHub.
 # Reads the manifest and downloads each listed script to ~/.local/bin/.
 # Usage: bash svc-installer
 
 RAW_BASE="https://raw.githubusercontent.com/johnbrimley/void-tools/main"
 MANIFEST_URL="${RAW_BASE}/manifest"
 INSTALL_DIR="$HOME/.local/bin"
-PROFILE="$HOME/.bash_profile"
+
+# Prefer .bashrc for interactive shells; fall back to .bash_profile
+if [[ -f "$HOME/.bashrc" ]]; then
+    PROFILE="$HOME/.bashrc"
+elif [[ -f "$HOME/.bash_profile" ]]; then
+    PROFILE="$HOME/.bash_profile"
+else
+    PROFILE="$HOME/.bashrc"
+fi
 
 # Require xbps-fetch
 if ! command -v xbps-fetch &>/dev/null; then
@@ -35,7 +43,15 @@ while IFS= read -r name; do
     [[ -z "$name" ]] && continue
     url="${RAW_BASE}/${name}"
     dest="${INSTALL_DIR}/${name}"
-    xbps-fetch -o "$dest" "$url" 2>/dev/null
+
+    # Download svc-installer via a temp file to avoid clobbering the running script
+    if [[ "$name" == "svc-installer" ]]; then
+        tmp="${dest}.new"
+        xbps-fetch -o "$tmp" "$url" 2>/dev/null && mv "$tmp" "$dest"
+    else
+        xbps-fetch -o "$dest" "$url" 2>/dev/null
+    fi
+
     if [[ $? -eq 0 ]]; then
         chmod +x "$dest"
         echo "  [ok] ${name}"

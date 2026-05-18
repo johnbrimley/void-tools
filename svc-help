@@ -4,17 +4,17 @@
 cat <<'EOF'
 Void Linux service management (runit)
 
-  svc-list                       List enabled services and their status.
-  svc-list --all                 List all available services, enabled or not.
+  svc-list                          List enabled services and their status.
+  svc-list --all                    List all available services, enabled or not.
 
-  svc-add <service>              Enable a service. Suggests similar names if not found.
-  svc-remove <service>           Disable a service cleanly.
+  svc-add <service>                 Enable a service. Suggests similar names if not found.
+  svc-remove <service>              Disable a service cleanly.
 
-  svc-create <name> <command>    Create and enable a new service running <command>.
-  svc-delete <name>              Disable and delete a service created by svc-create.
+  svc-create <name> <command...>    Create and enable a new service running <command>.
+  svc-delete <name>                 Disable and delete a service created by svc-create.
 
-  svc-log [service]              Tail the last 20 log lines. No argument aggregates all.
-  svc-log --all [service]        Show the full log instead of just the tail.
+  svc-log [service]                 Tail the last 20 log lines. No argument aggregates all.
+  svc-log --full [service]          Show the complete log instead of just the tail.
 
-  svc-help                       Show this help.
+  svc-help                          Show this help.
 EOF

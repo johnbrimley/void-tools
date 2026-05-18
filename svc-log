@@ -1,24 +1,24 @@
 #!/bin/bash
 # Show runit service logs from /var/log/.
-# Usage: svc-log [--all] [service]
+# Usage: svc-log [--full] [service]
 #   No arguments: tail the last 20 lines from all enabled services that have logs.
 #   <service>:    tail the last 20 lines from that service's log.
-#   --all:        show the full log instead of just the tail.
+#   --full:       show the complete log instead of just the tail.
 
 LOG_DIR="/var/log"
 RUN_DIR="/var/service"
 LINES=20
-show_all=false
+show_full=false
 service=""
 
 for arg in "$@"; do
     case "$arg" in
-        --all|-a) show_all=true ;;
-        -*) echo "ERROR: Unknown option: ${arg}" >&2; echo "Usage: svc-log [--all] [service]" >&2; exit 1 ;;
+        --full|-f) show_full=true ;;
+        -*) echo "ERROR: Unknown option: ${arg}" >&2; echo "Usage: svc-log [--full] [service]" >&2; exit 1 ;;
         *)
             if [[ -n "$service" ]]; then
                 echo "ERROR: only one service name at a time." >&2
-                echo "Usage: svc-log [--all] [service]" >&2
+                echo "Usage: svc-log [--full] [service]" >&2
                 exit 1
             fi
             service="$arg"
@@ -42,7 +42,7 @@ if [[ -n "$service" ]]; then
         exit 1
     fi
 
-    if $show_all; then
+    if $show_full; then
         cat "$log_file"
     else
         tail -n "$LINES" "$log_file"
@@ -76,7 +76,7 @@ for svc_path in "${services[@]}"; do
 
     found_any=true
     echo "=== ${name} ==="
-    if $show_all; then
+    if $show_full; then
         cat "$log_file"
     else
         tail -n "$LINES" "$log_file"

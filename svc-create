@@ -12,16 +12,17 @@ if [[ -z "$1" || -z "$2" ]]; then
     exit 1
 fi
 
-service="$1"
-shift
-command="$*"
-sv_path="${SV_DIR}/${service}"
-
 if [[ $EUID -ne 0 ]]; then
     echo "ERROR: svc-create requires root privileges." >&2
-    echo "Try: sudo svc-create ${service} ${command}" >&2
+    echo "Try: sudo svc-create $*" >&2
     exit 1
 fi
+
+service="$1"
+shift
+svc_cmd=$(printf '%q ' "$@")
+svc_cmd="${svc_cmd% }"
+sv_path="${SV_DIR}/${service}"
 
 if [[ -d "$sv_path" ]]; then
     echo "ERROR: A service named '${service}' already exists at ${sv_path}." >&2
@@ -35,11 +36,21 @@ mkdir -p "${sv_path}"
 cat > "${sv_path}/run" <<EOF
 #!/bin/sh
 # void-tools:managed
-exec ${command}
+exec ${svc_cmd}
 EOF
-
 chmod +x "${sv_path}/run"
 echo "  created ${sv_path}/run"
+
+mkdir -p "${sv_path}/log"
+mkdir -p "/var/log/${service}"
+cat > "${sv_path}/log/run" <<EOF
+#!/bin/sh
+# void-tools:managed
+exec svlogd -tt /var/log/${service}
+EOF
+chmod +x "${sv_path}/log/run"
+echo "  created ${sv_path}/log/run"
+echo "  created /var/log/${service}"
 
 echo ""
 echo "Enabling service..."

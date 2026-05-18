@@ -11,6 +11,12 @@ if [[ -z "$1" ]]; then
     exit 1
 fi
 
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: svc-add requires root privileges." >&2
+    echo "Try: sudo svc-add $1" >&2
+    exit 1
+fi
+
 service="$1"
 sv_path="${SV_DIR}/${service}"
 run_path="${RUN_DIR}/${service}"
@@ -44,13 +50,6 @@ if [[ ! -d "$sv_path" ]]; then
         echo "No similarly named services found in ${SV_DIR}."
         echo "Run 'svc-list --all' to see all available services."
     fi
-    exit 1
-fi
-
-# Need root to create symlink in /var/service
-if [[ $EUID -ne 0 ]]; then
-    echo "ERROR: svc-add requires root privileges." >&2
-    echo "Try: sudo svc-add ${service}" >&2
     exit 1
 fi
 
