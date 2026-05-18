@@ -47,7 +47,7 @@ while IFS= read -r name; do
     # Download svc-installer via a temp file to avoid clobbering the running script
     if [[ "$name" == "svc-installer" ]]; then
         tmp="${dest}.new"
-        xbps-fetch -o "$tmp" "$url" 2>/dev/null && mv "$tmp" "$dest"
+        xbps-fetch -o "$tmp" "$url" 2>/dev/null && mv "$tmp" "$dest" || rm -f "$tmp"
     else
         xbps-fetch -o "$dest" "$url" 2>/dev/null
     fi

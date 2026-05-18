@@ -31,10 +31,12 @@ if [[ -d "$sv_path" ]]; then
 fi
 
 echo "Creating service '${service}'..."
+trap 'rm -rf "${sv_path}"; echo "ERROR: creation failed, rolled back ${sv_path}." >&2' ERR
+
 mkdir -p "${sv_path}"
 
 cat > "${sv_path}/run" <<EOF
-#!/bin/sh
+#!/bin/bash
 # void-tools:managed
 exec ${svc_cmd}
 EOF
@@ -44,13 +46,15 @@ echo "  created ${sv_path}/run"
 mkdir -p "${sv_path}/log"
 mkdir -p "/var/log/${service}"
 cat > "${sv_path}/log/run" <<EOF
-#!/bin/sh
+#!/bin/bash
 # void-tools:managed
 exec svlogd -tt /var/log/${service}
 EOF
 chmod +x "${sv_path}/log/run"
 echo "  created ${sv_path}/log/run"
 echo "  created /var/log/${service}"
+
+trap - ERR
 
 echo ""
 echo "Enabling service..."

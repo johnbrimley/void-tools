@@ -34,7 +34,7 @@ if [[ ! -L "$run_path" ]]; then
     echo ""
 
     # Maybe they mistyped — check for similarly named enabled services
-    mapfile -t suggestions < <(find "$RUN_DIR" -maxdepth 1 -mindepth 1 -type l -iname "*${service}*" -printf "%f\n" 2>/dev/null | sort)
+    mapfile -t suggestions < <(find "$RUN_DIR" -maxdepth 1 -mindepth 1 -type l -printf "%f\n" 2>/dev/null | grep -iF "$service" | sort)
     if [[ ${#suggestions[@]} -gt 0 ]]; then
         echo "Did you mean one of these enabled services?"
         for s in "${suggestions[@]}"; do

@@ -40,7 +40,7 @@ if [[ ! -d "$sv_path" ]]; then
     echo ""
 
     # Fuzzy suggestions: case-insensitive substring matches
-    mapfile -t suggestions < <(find "$SV_DIR" -maxdepth 1 -mindepth 1 -type d -iname "*${service}*" -printf "%f\n" 2>/dev/null | sort)
+    mapfile -t suggestions < <(find "$SV_DIR" -maxdepth 1 -mindepth 1 -type d -printf "%f\n" 2>/dev/null | grep -iF "$service" | sort)
     if [[ ${#suggestions[@]} -gt 0 ]]; then
         echo "Did you mean one of these?"
         for s in "${suggestions[@]}"; do
