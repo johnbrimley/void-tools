@@ -1,0 +1,94 @@
+#!/bin/bash
+# Show runit service logs from /var/log/.
+# Usage: svc-log [--all] [service]
+#   No arguments: tail the last 20 lines from all enabled services that have logs.
+#   <service>:    tail the last 20 lines from that service's log.
+#   --all:        show the full log instead of just the tail.
+
+LOG_DIR="/var/log"
+RUN_DIR="/var/service"
+LINES=20
+show_all=false
+service=""
+
+for arg in "$@"; do
+    case "$arg" in
+        --all|-a) show_all=true ;;
+        -*) echo "ERROR: Unknown option: ${arg}" >&2; echo "Usage: svc-log [--all] [service]" >&2; exit 1 ;;
+        *)
+            if [[ -n "$service" ]]; then
+                echo "ERROR: only one service name at a time." >&2
+                echo "Usage: svc-log [--all] [service]" >&2
+                exit 1
+            fi
+            service="$arg"
+            ;;
+    esac
+done
+
+# --- Single service ---
+if [[ -n "$service" ]]; then
+    log_file="${LOG_DIR}/${service}/current"
+
+    if [[ ! -f "$log_file" ]]; then
+        echo "ERROR: No log found for '${service}' at ${log_file}." >&2
+        echo "" >&2
+        if [[ ! -L "${RUN_DIR}/${service}" ]]; then
+            echo "'${service}' does not appear to be an enabled service." >&2
+            echo "Run 'svc-list' to see enabled services." >&2
+        else
+            echo "'${service}' is enabled but has no log service configured." >&2
+        fi
+        exit 1
+    fi
+
+    if $show_all; then
+        cat "$log_file"
+    else
+        tail -n "$LINES" "$log_file"
+    fi
+    exit 0
+fi
+
+# --- Aggregate all enabled services ---
+if [[ ! -d "$RUN_DIR" ]]; then
+    echo "ERROR: ${RUN_DIR} does not exist. Is runit running?" >&2
+    exit 1
+fi
+
+services=( "$RUN_DIR"/*/ )
+if [[ ${#services[@]} -eq 0 || ! -d "${services[0]}" ]]; then
+    echo "No services currently enabled."
+    exit 0
+fi
+
+no_log=()
+found_any=false
+
+for svc_path in "${services[@]}"; do
+    name="$(basename "$svc_path")"
+    log_file="${LOG_DIR}/${name}/current"
+
+    if [[ ! -f "$log_file" ]]; then
+        no_log+=("$name")
+        continue
+    fi
+
+    found_any=true
+    echo "=== ${name} ==="
+    if $show_all; then
+        cat "$log_file"
+    else
+        tail -n "$LINES" "$log_file"
+    fi
+    echo ""
+done
+
+if ! $found_any; then
+    echo "No log files found for any enabled service."
+    echo "Services may not have a log/ directory configured in /etc/sv/."
+fi
+
+if [[ ${#no_log[@]} -gt 0 ]]; then
+    echo "No log configured for: ${no_log[*]}"
+fi

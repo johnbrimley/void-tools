@@ -58,6 +58,23 @@ sudo pkg-update
 
 ---
 
+### `svc-create <name> <command...>`
+
+Create a new runit service and enable it immediately. Writes `/etc/sv/<name>/run` with the given command and marks it as void-tools-managed.
+
+```sh
+sudo svc-create mysite node /path/to/app.js
+sudo svc-create myapi /usr/local/bin/myapi --port 8080
+```
+
+### `svc-delete <name>`
+
+Delete a service and its `/etc/sv/<name>` directory. Only works on services created with `svc-create` — refuses to touch anything installed by xbps. Disables the service first if it is currently enabled.
+
+```sh
+sudo svc-delete mysite
+```
+
 ### `svc-list`
 
 List enabled services and their current status.
@@ -73,6 +90,17 @@ Enable a service. If the service name isn't found, suggests similarly named serv
 
 ```sh
 sudo svc-add dbus
+```
+
+### `svc-log [--all] [service]`
+
+Show service logs from `/var/log/`. With no arguments, tails the last 20 lines from every enabled service that has logging configured. Pass a service name to focus on one. `--all` dumps the full log instead of just the tail.
+
+```sh
+svc-log                  # last 20 lines from all enabled services
+svc-log dbus             # last 20 lines from dbus
+svc-log --all dbus       # full dbus log
+svc-log --all            # full log from all enabled services
 ```
 
 ### `svc-remove <service>`

@@ -1,0 +1,54 @@
+#!/bin/bash
+# Delete a service created by svc-create. Refuses to touch services not managed by void-tools.
+# Usage: svc-delete <name>
+
+SV_DIR="/etc/sv"
+RUN_DIR="/var/service"
+MARKER="void-tools:managed"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "$1" ]]; then
+    echo "Usage: svc-delete <name>" >&2
+    exit 1
+fi
+
+service="$1"
+sv_path="${SV_DIR}/${service}"
+run_file="${sv_path}/run"
+run_link="${RUN_DIR}/${service}"
+
+if [[ ! -d "$sv_path" ]]; then
+    echo "ERROR: No service named '${service}' found in ${SV_DIR}." >&2
+    exit 1
+fi
+
+# Check for our marker before doing anything destructive
+if [[ ! -f "$run_file" ]] || ! grep -q "$MARKER" "$run_file"; then
+    echo "ERROR: '${service}' was not created by svc-create and cannot be managed by svc-delete." >&2
+    echo "Only services created with svc-create can be deleted this way." >&2
+    echo "To disable it without deleting, use: sudo svc-remove ${service}" >&2
+    exit 1
+fi
+
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: svc-delete requires root privileges." >&2
+    echo "Try: sudo svc-delete ${service}" >&2
+    exit 1
+fi
+
+# Disable first if currently enabled
+if [[ -L "$run_link" ]]; then
+    echo "Disabling service before deletion..."
+    "${SCRIPT_DIR}/svc-remove" "$service"
+    echo ""
+fi
+
+echo "Deleting service directory ${sv_path}..."
+rm -rf "$sv_path"
+
+if [[ $? -eq 0 ]]; then
+    echo "Service '${service}' deleted."
+else
+    echo "ERROR: Failed to remove ${sv_path}." >&2
+    exit 1
+fi

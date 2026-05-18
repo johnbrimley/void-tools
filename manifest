@@ -1,9 +1,14 @@
+pkg-help
 pkg-install
 pkg-list
 pkg-remove
 pkg-search
 pkg-update
 svc-add
+svc-create
+svc-delete
+svc-help
 svc-list
+svc-log
 svc-remove
 svc-installer

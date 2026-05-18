@@ -1,0 +1,46 @@
+#!/bin/bash
+# Create a new runit service and enable it.
+# Usage: svc-create <name> <command...>
+# Example: svc-create mysite node /path/to/app.js
+
+SV_DIR="/etc/sv"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "$1" || -z "$2" ]]; then
+    echo "Usage: svc-create <name> <command...>" >&2
+    echo "Example: svc-create mysite node /path/to/app.js" >&2
+    exit 1
+fi
+
+service="$1"
+shift
+command="$*"
+sv_path="${SV_DIR}/${service}"
+
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: svc-create requires root privileges." >&2
+    echo "Try: sudo svc-create ${service} ${command}" >&2
+    exit 1
+fi
+
+if [[ -d "$sv_path" ]]; then
+    echo "ERROR: A service named '${service}' already exists at ${sv_path}." >&2
+    echo "Choose a different name or remove the existing service with svc-delete." >&2
+    exit 1
+fi
+
+echo "Creating service '${service}'..."
+mkdir -p "${sv_path}"
+
+cat > "${sv_path}/run" <<EOF
+#!/bin/sh
+# void-tools:managed
+exec ${command}
+EOF
+
+chmod +x "${sv_path}/run"
+echo "  created ${sv_path}/run"
+
+echo ""
+echo "Enabling service..."
+"${SCRIPT_DIR}/svc-add" "$service"

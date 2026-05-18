@@ -1,0 +1,15 @@
+#!/bin/bash
+# List all pkg-* commands and what they do.
+
+cat <<'EOF'
+Void Linux package management (xbps)
+
+  pkg-search <query>             Search available packages by name or description.
+  pkg-list [filter]              List installed packages, with optional filter.
+
+  pkg-install <package...>       Install one or more packages.
+  pkg-remove <package...>        Remove a package and its unneeded dependencies.
+  pkg-update                     Sync repositories and upgrade all installed packages.
+
+  pkg-help                       Show this help.
+EOF
