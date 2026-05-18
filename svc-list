@@ -1,0 +1,51 @@
+#!/bin/bash
+# List runit services. Enabled services live in /var/service/ as symlinks to /etc/sv/.
+# Usage: svc-list [--all]
+
+SV_DIR="/etc/sv"
+RUN_DIR="/var/service"
+
+show_all=false
+if [[ "${1}" == "--all" || "${1}" == "-a" ]]; then
+    show_all=true
+fi
+
+if $show_all; then
+    echo "Available services (${SV_DIR}):"
+    echo ""
+    if [[ ! -d "$SV_DIR" ]]; then
+        echo "  ERROR: ${SV_DIR} does not exist." >&2
+        exit 1
+    fi
+    services=( "$SV_DIR"/*/  )
+    if [[ ${#services[@]} -eq 0 || ! -d "${services[0]}" ]]; then
+        echo "  (none found)"
+    else
+        for svc_path in "${services[@]}"; do
+            name="$(basename "$svc_path")"
+            if [[ -L "${RUN_DIR}/${name}" ]]; then
+                status="$(sv status "$name" 2>/dev/null | head -1)"
+                printf "  %-30s [enabled] %s\n" "$name" "$status"
+            else
+                printf "  %-30s [disabled]\n" "$name"
+            fi
+        done
+    fi
+else
+    echo "Enabled services (${RUN_DIR}):"
+    echo ""
+    if [[ ! -d "$RUN_DIR" ]]; then
+        echo "  ERROR: ${RUN_DIR} does not exist." >&2
+        exit 1
+    fi
+    services=( "$RUN_DIR"/*/  )
+    if [[ ${#services[@]} -eq 0 || ! -d "${services[0]}" ]]; then
+        echo "  (no services currently enabled)"
+    else
+        for svc_path in "${services[@]}"; do
+            name="$(basename "$svc_path")"
+            status="$(sv status "$name" 2>/dev/null | head -1)"
+            printf "  %-30s %s\n" "$name" "$status"
+        done
+    fi
+fi

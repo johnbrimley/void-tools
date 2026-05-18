@@ -1,0 +1,74 @@
+#!/bin/bash
+# Enable a runit service by symlinking it into /var/service/.
+# Usage: svc-add <service-name>
+
+SV_DIR="/etc/sv"
+RUN_DIR="/var/service"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "$1" ]]; then
+    echo "Usage: svc-add <service-name>" >&2
+    exit 1
+fi
+
+service="$1"
+sv_path="${SV_DIR}/${service}"
+run_path="${RUN_DIR}/${service}"
+
+# Check we can write to /var/service
+if [[ ! -d "$RUN_DIR" ]]; then
+    echo "ERROR: ${RUN_DIR} does not exist. Is runit running?" >&2
+    exit 1
+fi
+
+# Already enabled?
+if [[ -L "$run_path" ]]; then
+    echo "Service '${service}' is already enabled."
+    sv status "$service" 2>/dev/null
+    exit 0
+fi
+
+# Service exists in /etc/sv?
+if [[ ! -d "$sv_path" ]]; then
+    echo "ERROR: '${service}' not found in ${SV_DIR}." >&2
+    echo ""
+
+    # Fuzzy suggestions: case-insensitive substring matches
+    mapfile -t suggestions < <(find "$SV_DIR" -maxdepth 1 -mindepth 1 -type d -iname "*${service}*" -printf "%f\n" 2>/dev/null | sort)
+    if [[ ${#suggestions[@]} -gt 0 ]]; then
+        echo "Did you mean one of these?"
+        for s in "${suggestions[@]}"; do
+            echo "  svc-add ${s}"
+        done
+    else
+        echo "No similarly named services found in ${SV_DIR}."
+        echo "Run 'svc-list --all' to see all available services."
+    fi
+    exit 1
+fi
+
+# Need root to create symlink in /var/service
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: svc-add requires root privileges." >&2
+    echo "Try: sudo svc-add ${service}" >&2
+    exit 1
+fi
+
+echo "Enabling service '${service}'..."
+ln -s "${sv_path}" "${run_path}"
+
+if [[ $? -ne 0 ]]; then
+    echo "ERROR: Failed to create symlink ${run_path} -> ${sv_path}" >&2
+    exit 1
+fi
+
+echo "Service '${service}' enabled."
+echo ""
+
+# Give runit a moment to pick it up, then show status
+sleep 1
+sv status "$service" 2>/dev/null
+
+echo ""
+echo "Current enabled services:"
+"${SCRIPT_DIR}/svc-list"

@@ -1,0 +1,61 @@
+#!/bin/bash
+# Disable a runit service by removing its symlink from /var/service/.
+# Usage: svc-remove <service-name>
+
+RUN_DIR="/var/service"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "$1" ]]; then
+    echo "Usage: svc-remove <service-name>" >&2
+    exit 1
+fi
+
+service="$1"
+run_path="${RUN_DIR}/${service}"
+
+if [[ ! -d "$RUN_DIR" ]]; then
+    echo "ERROR: ${RUN_DIR} does not exist. Is runit running?" >&2
+    exit 1
+fi
+
+# Not enabled?
+if [[ ! -L "$run_path" ]]; then
+    echo "ERROR: Service '${service}' is not currently enabled." >&2
+    echo ""
+
+    # Maybe they mistyped — check for similarly named enabled services
+    mapfile -t suggestions < <(find "$RUN_DIR" -maxdepth 1 -mindepth 1 -type l -iname "*${service}*" -printf "%f\n" 2>/dev/null | sort)
+    if [[ ${#suggestions[@]} -gt 0 ]]; then
+        echo "Did you mean one of these enabled services?"
+        for s in "${suggestions[@]}"; do
+            echo "  svc-remove ${s}"
+        done
+    else
+        echo "Run 'svc-list' to see currently enabled services."
+    fi
+    exit 1
+fi
+
+# Need root
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: svc-remove requires root privileges." >&2
+    echo "Try: sudo svc-remove ${service}" >&2
+    exit 1
+fi
+
+# Bring the service down before unlinking so runit doesn't restart it
+echo "Stopping service '${service}'..."
+sv down "$service" 2>/dev/null
+
+echo "Disabling service '${service}'..."
+rm "${run_path}"
+
+if [[ $? -ne 0 ]]; then
+    echo "ERROR: Failed to remove ${run_path}" >&2
+    exit 1
+fi
+
+echo "Service '${service}' disabled."
+echo ""
+echo "Current enabled services:"
+"${SCRIPT_DIR}/svc-list"

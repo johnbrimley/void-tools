@@ -1,0 +1,79 @@
+#!/bin/bash
+# Bootstrap void-tools svc-* scripts from GitHub.
+# Reads the manifest and downloads each listed script to ~/.local/bin/.
+# Usage: bash svc-installer
+
+RAW_BASE="https://raw.githubusercontent.com/johnbrimley/void-tools/main"
+MANIFEST_URL="${RAW_BASE}/manifest"
+INSTALL_DIR="$HOME/.local/bin"
+PROFILE="$HOME/.bash_profile"
+
+# Require xbps-fetch
+if ! command -v xbps-fetch &>/dev/null; then
+    echo "ERROR: xbps-fetch not found. Are you running Void Linux?" >&2
+    exit 1
+fi
+
+# Create install directory if needed
+if [[ ! -d "$INSTALL_DIR" ]]; then
+    echo "Creating ${INSTALL_DIR}..."
+    mkdir -p "$INSTALL_DIR" || { echo "ERROR: could not create ${INSTALL_DIR}" >&2; exit 1; }
+fi
+
+# Fetch the manifest
+echo "Fetching manifest from ${MANIFEST_URL}..."
+manifest="$(xbps-fetch -o - "$MANIFEST_URL" 2>/dev/null)"
+if [[ -z "$manifest" ]]; then
+    echo "ERROR: failed to fetch manifest. Check your network connection." >&2
+    exit 1
+fi
+
+# Download each script listed in the manifest
+echo ""
+echo "Installing scripts to ${INSTALL_DIR}:"
+while IFS= read -r name; do
+    [[ -z "$name" ]] && continue
+    url="${RAW_BASE}/${name}"
+    dest="${INSTALL_DIR}/${name}"
+    xbps-fetch -o "$dest" "$url" 2>/dev/null
+    if [[ $? -eq 0 ]]; then
+        chmod +x "$dest"
+        echo "  [ok] ${name}"
+    else
+        echo "  [FAILED] ${name} — could not fetch ${url}" >&2
+    fi
+done <<< "$manifest"
+
+echo ""
+
+# PATH wiring
+if echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
+    echo "${INSTALL_DIR} is already in your PATH."
+    echo ""
+    echo "All done. Scripts are ready to use."
+    exit 0
+fi
+
+if grep -qF "$INSTALL_DIR" "$PROFILE" 2>/dev/null; then
+    echo "${INSTALL_DIR} is already referenced in ${PROFILE} but isn't active in this session."
+    echo "Run: source ${PROFILE}"
+    exit 0
+fi
+
+if [[ ! -f "$PROFILE" ]]; then
+    echo "Creating ${PROFILE}..."
+    touch "$PROFILE"
+fi
+
+echo "Adding ${INSTALL_DIR} to PATH in ${PROFILE}..."
+cat >> "$PROFILE" <<'EOF'
+
+# Added by svc-installer (void-tools)
+export PATH="$HOME/.local/bin:$PATH"
+EOF
+
+echo ""
+echo "All done. To activate in this session, run:"
+echo "  source ${PROFILE}"
+echo ""
+echo "New shell sessions will pick it up automatically."
