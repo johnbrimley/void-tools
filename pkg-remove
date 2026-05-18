@@ -1,0 +1,37 @@
+#!/bin/bash
+# Remove a package and its unneeded dependencies.
+# Usage: pkg-remove <package> [package...]
+
+if [[ -z "$1" ]]; then
+    echo "Usage: pkg-remove <package> [package...]" >&2
+    echo "Tip:   use pkg-list to see installed packages." >&2
+    exit 1
+fi
+
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: pkg-remove requires root privileges." >&2
+    echo "Try: sudo pkg-remove $*" >&2
+    exit 1
+fi
+
+# Verify each package is actually installed before attempting removal
+not_found=()
+for pkg in "$@"; do
+    if ! xbps-query "$pkg" &>/dev/null; then
+        not_found+=("$pkg")
+    fi
+done
+
+if [[ ${#not_found[@]} -gt 0 ]]; then
+    echo "ERROR: the following packages are not installed:" >&2
+    for pkg in "${not_found[@]}"; do
+        echo "  ${pkg}" >&2
+    done
+    echo "" >&2
+    echo "Run 'pkg-list' to see what is installed." >&2
+    exit 1
+fi
+
+echo "Removing: $*"
+echo ""
+xbps-remove -R "$@"

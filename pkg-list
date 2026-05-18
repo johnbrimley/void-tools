@@ -1,0 +1,18 @@
+#!/bin/bash
+# List installed packages, with optional filter.
+# Usage: pkg-list [filter]
+
+if [[ -n "$1" ]]; then
+    echo "Installed packages matching '$1':"
+    echo ""
+    xbps-query -l | grep -i "$1"
+    if [[ ${PIPESTATUS[1]} -ne 0 ]]; then
+        echo "No installed packages matching '$1'." >&2
+        echo "Tip: use pkg-search to find packages available to install." >&2
+        exit 1
+    fi
+else
+    echo "Installed packages:"
+    echo ""
+    xbps-query -l
+fi

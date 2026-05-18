@@ -1,0 +1,13 @@
+#!/bin/bash
+# Sync repositories and upgrade all installed packages.
+# Usage: pkg-update
+
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: pkg-update requires root privileges." >&2
+    echo "Try: sudo pkg-update" >&2
+    exit 1
+fi
+
+echo "Syncing repositories and upgrading packages..."
+echo ""
+xbps-install -Su
