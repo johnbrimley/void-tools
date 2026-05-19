@@ -37,6 +37,15 @@ for arg in "$@"; do
     svc_cmd+="\"${arg//\"/\\\"}\" "
 done
 svc_cmd="${svc_cmd% }"
+
+echo ""
+echo "Note: svlogd only captures stdout. Without '2>&1', stderr from your service will be lost."
+read -r -p "Append '2>&1' to capture all output? [Y/n] " answer
+if [[ -z "$answer" || "$answer" == "y" || "$answer" == "Y" ]]; then
+    svc_cmd+=" 2>&1"
+fi
+echo ""
+
 sv_path="${SV_DIR}/${service}"
 
 if [[ -d "$sv_path" ]]; then
