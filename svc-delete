@@ -44,11 +44,20 @@ if [[ -L "$run_link" ]]; then
 fi
 
 echo "Deleting service directory ${sv_path}..."
-rm -rf "$sv_path"
 
-if [[ $? -eq 0 ]]; then
+# runit holds the supervise/ directory open briefly after a service is disabled.
+# Retry a few times to give it time to release.
+deleted=false
+for i in {1..5}; do
+    rm -rf "$sv_path" 2>/dev/null && deleted=true && break
+    echo "  Waiting for runit to release the service... (${i}/5)"
+    sleep 1
+done
+
+if $deleted; then
     echo "Service '${service}' deleted."
 else
-    echo "ERROR: Failed to remove ${sv_path}." >&2
+    echo "ERROR: Failed to remove ${sv_path} after 5 attempts." >&2
+    echo "runit may still be holding the supervise directory open." >&2
     exit 1
 fi
