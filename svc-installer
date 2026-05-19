@@ -28,17 +28,19 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
     mkdir -p "$INSTALL_DIR" || { echo "ERROR: could not create ${INSTALL_DIR}" >&2; exit 1; }
 fi
 
-# Fetch the manifest via a temp file (xbps-fetch does not support stdout with -o -)
+# All downloads go into a temp directory. xbps-fetch saves each file using
+# the URL's basename, so we avoid -o entirely (its stdout behavior is unreliable).
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+# Fetch the manifest
 echo "Fetching manifest from ${MANIFEST_URL}..."
-manifest_tmp="$(mktemp)"
-xbps-fetch -o "$manifest_tmp" "$MANIFEST_URL" 2>/dev/null
-if [[ $? -ne 0 || ! -s "$manifest_tmp" ]]; then
-    rm -f "$manifest_tmp"
+(cd "$tmpdir" && xbps-fetch "$MANIFEST_URL" >/dev/null 2>&1)
+if [[ ! -s "$tmpdir/manifest" ]]; then
     echo "ERROR: failed to fetch manifest. Check your network connection." >&2
     exit 1
 fi
-manifest="$(cat "$manifest_tmp")"
-rm -f "$manifest_tmp"
+manifest="$(cat "$tmpdir/manifest")"
 
 # Download each script listed in the manifest
 echo ""
@@ -48,15 +50,10 @@ while IFS= read -r name; do
     url="${RAW_BASE}/${name}"
     dest="${INSTALL_DIR}/${name}"
 
-    # Download svc-installer via a temp file to avoid clobbering the running script
-    if [[ "$name" == "svc-installer" ]]; then
-        tmp="${dest}.new"
-        xbps-fetch -o "$tmp" "$url" 2>/dev/null && mv "$tmp" "$dest" || rm -f "$tmp"
-    else
-        xbps-fetch -o "$dest" "$url" 2>/dev/null
-    fi
-
-    if [[ $? -eq 0 ]]; then
+    rm -f "$tmpdir/$name"
+    (cd "$tmpdir" && xbps-fetch "$url" >/dev/null 2>&1)
+    if [[ -f "$tmpdir/$name" ]]; then
+        mv "$tmpdir/$name" "$dest"
         chmod +x "$dest"
         echo "  [ok] ${name}"
     else
