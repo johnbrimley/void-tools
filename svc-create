@@ -39,10 +39,12 @@ done
 svc_cmd="${svc_cmd% }"
 
 echo ""
-echo "Note: svlogd only captures stdout. Without '2>&1', stderr from your service will be lost."
-read -r -p "Append '2>&1' to capture all output? [Y/n] " answer
+echo "runit only captures stdout in service logs. Redirecting stderr means errors"
+echo "won't silently vanish — they'll show up in /var/log/${service}/current."
+read -r -p "Redirect stderr to the log file? [Y/n] " answer
+redirect_stderr=false
 if [[ -z "$answer" || "$answer" == "y" || "$answer" == "Y" ]]; then
-    svc_cmd+=" 2>&1"
+    redirect_stderr=true
 fi
 echo ""
 
@@ -59,11 +61,20 @@ trap 'rm -rf "${sv_path}"; echo "ERROR: creation failed, rolled back ${sv_path}.
 
 mkdir -p "${sv_path}"
 
-cat > "${sv_path}/run" <<EOF
+if $redirect_stderr; then
+    cat > "${sv_path}/run" <<EOF
+#!/bin/bash
+# void-tools:managed
+exec 2>&1
+exec ${svc_cmd}
+EOF
+else
+    cat > "${sv_path}/run" <<EOF
 #!/bin/bash
 # void-tools:managed
 exec ${svc_cmd}
 EOF
+fi
 chmod +x "${sv_path}/run"
 echo "  created ${sv_path}/run"
 
