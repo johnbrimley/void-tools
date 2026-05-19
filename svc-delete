@@ -61,3 +61,11 @@ else
     echo "runit may still be holding the supervise directory open." >&2
     exit 1
 fi
+
+# Clean up log directory created by svc-create
+log_dir="/var/log/${service}"
+if [[ -d "$log_dir" ]]; then
+    echo "Removing log directory ${log_dir}..."
+    rm -rf "$log_dir"
+    echo "Log directory removed."
+fi
