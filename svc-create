@@ -20,6 +20,18 @@ fi
 
 service="$1"
 shift
+
+# If the binary name contains a space the user likely quoted the whole command
+# as a single string (e.g. "node /path/to/app.js"). That isn't supported —
+# pass each argument separately instead.
+if [[ "$1" == *" "* ]]; then
+    echo "ERROR: the command must be passed as separate arguments, not as a single quoted string." >&2
+    echo "" >&2
+    echo "  Wrong: svc-create ${service} \"$*\"" >&2
+    echo "  Right: svc-create ${service} $*" >&2
+    exit 1
+fi
+
 svc_cmd=$(printf '%q ' "$@")
 svc_cmd="${svc_cmd% }"
 sv_path="${SV_DIR}/${service}"
