@@ -32,7 +32,10 @@ if [[ "$1" == *" "* ]]; then
     exit 1
 fi
 
-svc_cmd=$(printf '%q ' "$@")
+svc_cmd=""
+for arg in "$@"; do
+    svc_cmd+="\"${arg//\"/\\\"}\" "
+done
 svc_cmd="${svc_cmd% }"
 sv_path="${SV_DIR}/${service}"
 
