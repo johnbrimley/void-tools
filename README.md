@@ -8,10 +8,10 @@ Download and run the installer using `xbps-fetch`:
 
 ```sh
 xbps-fetch https://raw.githubusercontent.com/johnbrimley/void-tools/main/svc-installer
-bash ./svc-installer
+sudo bash ./svc-installer
 ```
 
-The installer fetches the latest versions of all scripts from this repo and places them in `~/.local/bin/`. If that directory isn't on your `PATH` yet, it will add it to `~/.bash_profile`.
+The installer fetches the latest versions of all scripts from this repo and places them in `/usr/local/bin/`. Root is required because most of these tools manage system services and packages. Re-run `sudo svc-installer` at any time to update.
 
 ## Scripts
 

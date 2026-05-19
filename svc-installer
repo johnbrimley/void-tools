@@ -1,31 +1,22 @@
 #!/bin/bash
 # Bootstrap void-tools scripts from GitHub.
-# Reads the manifest and downloads each listed script to ~/.local/bin/.
-# Usage: bash svc-installer
+# Reads the manifest and downloads each listed script to /usr/local/bin/.
+# Usage: sudo bash svc-installer
 
 RAW_BASE="https://raw.githubusercontent.com/johnbrimley/void-tools/main"
 MANIFEST_URL="${RAW_BASE}/manifest"
-INSTALL_DIR="$HOME/.local/bin"
+INSTALL_DIR="/usr/local/bin"
 
-# Prefer .bashrc for interactive shells; fall back to .bash_profile
-if [[ -f "$HOME/.bashrc" ]]; then
-    PROFILE="$HOME/.bashrc"
-elif [[ -f "$HOME/.bash_profile" ]]; then
-    PROFILE="$HOME/.bash_profile"
-else
-    PROFILE="$HOME/.bashrc"
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: svc-installer requires root privileges." >&2
+    echo "Try: sudo bash svc-installer" >&2
+    exit 1
 fi
 
 # Require xbps-fetch
 if ! command -v xbps-fetch &>/dev/null; then
     echo "ERROR: xbps-fetch not found. Are you running Void Linux?" >&2
     exit 1
-fi
-
-# Create install directory if needed
-if [[ ! -d "$INSTALL_DIR" ]]; then
-    echo "Creating ${INSTALL_DIR}..."
-    mkdir -p "$INSTALL_DIR" || { echo "ERROR: could not create ${INSTALL_DIR}" >&2; exit 1; }
 fi
 
 # All downloads go into a temp directory. xbps-fetch saves each file using
@@ -62,35 +53,4 @@ while IFS= read -r name; do
 done <<< "$manifest"
 
 echo ""
-
-# PATH wiring
-if echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
-    echo "${INSTALL_DIR} is already in your PATH."
-    echo ""
-    echo "All done. Scripts are ready to use."
-    exit 0
-fi
-
-if grep -qF "$INSTALL_DIR" "$PROFILE" 2>/dev/null; then
-    echo "${INSTALL_DIR} is already referenced in ${PROFILE} but isn't active in this session."
-    echo "Run: source ${PROFILE}"
-    exit 0
-fi
-
-if [[ ! -f "$PROFILE" ]]; then
-    echo "Creating ${PROFILE}..."
-    touch "$PROFILE"
-fi
-
-echo "Adding ${INSTALL_DIR} to PATH in ${PROFILE}..."
-cat >> "$PROFILE" <<'EOF'
-
-# Added by svc-installer (void-tools)
-export PATH="$HOME/.local/bin:$PATH"
-EOF
-
-echo ""
-echo "All done. To activate in this session, run:"
-echo "  source ${PROFILE}"
-echo ""
-echo "New shell sessions will pick it up automatically."
+echo "All done. Scripts are ready to use."
